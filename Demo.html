@@ -89,7 +89,7 @@ function OnDeleteDrop(Event)
 }
 </script>
 
-<uv-label-editor id="LabelEditor" labels='{"Hello":[0.5,0.5]}' css="Demo.css"></uv-label-editor>
+<uv-label-editor id="LabelEditor" readonly=false labels='{"Hello":[0.5,0.5]}' css="Demo.css"></uv-label-editor>
 <textarea id="JsonOutput"></textarea>
 <div id="Labels">
 	<div id="Delete" droppable=true ondragover="OnDeleteDragOver(event)" ondrop="OnDeleteDrop(event)">Drop Label Here to Delete</div>

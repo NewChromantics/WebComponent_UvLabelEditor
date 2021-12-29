@@ -70,7 +70,20 @@ export class UvLabelEditor extends HTMLElement
 	
 	static get observedAttributes() 
 	{
-		return ['labels','css'];
+		return ['labels','css','readonly'];
+	}
+	
+	get readonly()
+	{
+		let ReadOnly = this.hasAttribute('readonly') ? this.getAttribute('readonly') : 'false';
+		ReadOnly = ReadOnly.toLowerCase();
+		return ReadOnly != 'false';
+	}
+	set readonly(value)
+	{
+		if ( value === false || value === true )
+			value = `${value}`;
+		this.setAttribute('readonly',value);
 	}
 	
 	//	get labels attribute as object
@@ -165,6 +178,9 @@ export class UvLabelEditor extends HTMLElement
 		if ( name == 'labels' )
 			this.UpdateLabels();
 		
+		if ( name == 'readonly' )
+			this.UpdateContainerAttributes();
+		
 		if ( this.Style )
 			this.Style.textContent = this.GetCssContent();
 	}
@@ -203,6 +219,8 @@ export class UvLabelEditor extends HTMLElement
 	{
 		function OnDragOver(Event)
 		{
+			if ( this.readonly )
+				return;
 			//	continuously called
 			//console.log(`OnDragOver ${Key}`);
 			Element.setAttribute('DragOver',true);
@@ -224,6 +242,8 @@ export class UvLabelEditor extends HTMLElement
 		}
 		function OnDrop(Event)
 		{
+			if ( this.readonly )
+				return;
 			console.log(`OnDrop`);
 			Element.removeAttribute('DragOver');
 			Event.preventDefault();
@@ -240,10 +260,19 @@ export class UvLabelEditor extends HTMLElement
 		Element.className = this.ElementName();
 
 		//	handle dropping new elements
-		Element.setAttribute('Droppable',true);
 		Element.addEventListener('drop',OnDrop.bind(this));
-		Element.addEventListener('dragover',OnDragOver);
+		Element.addEventListener('dragover',OnDragOver.bind(this));
 		Element.addEventListener('dragleave',OnDragLeave);
+
+		this.UpdateContainerAttributes();
+	}
+	
+	UpdateContainerAttributes()
+	{
+		const Element = this.RootElement;
+		if ( !Element )
+			return; 
+		Element.setAttribute('Droppable', this.readonly );
 	}
 	
 	OnDroppedKey(Key,uv)
@@ -294,7 +323,7 @@ export class UvLabelEditor extends HTMLElement
 		Element.setAttribute('label',Key);
 		
 		//	set attribute to make it draggable
-		Element.setAttribute('Draggable',true);
+		Element.setAttribute('Draggable', true );
 		//	on ios its a css choice
 		//	gr: not required https://stackoverflow.com/questions/6600950/native-html5-drag-and-drop-in-mobile-safari-ipad-ipod-iphone
 		//Element.style.setProperty('webkitUserDrag','element');
