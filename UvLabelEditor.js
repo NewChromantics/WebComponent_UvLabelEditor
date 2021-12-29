@@ -269,6 +269,9 @@ export class UvLabelEditor extends HTMLElement
 			//	adjust for borders/margins etc. A value here means offset is relative to this
 			GrabX -= Event.currentTarget.clientLeft;
 			GrabY -= Event.currentTarget.clientTop;
+			//	gr: still need a tiny adjustment...
+			GrabX -= 2;
+			GrabY -= 2;
 			this.GrabXy = [GrabX,GrabY];
 			
 			Event.stopPropagation();	//	stops multiple objects being dragged
