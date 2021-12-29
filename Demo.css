@@ -1,0 +1,62 @@
+label
+{
+	font-weight:	bold;
+	margin-right:	1em;
+}
+
+
+div
+{
+	--Indent:		0;
+	
+	margin:		1px;
+	padding:	3px;
+	margin-left:	calc(var(--Indent)*0.2em);
+
+	/* ios enable dragging, instead of draggable=true */
+	xxx-webkit-user-select: none;
+}
+
+div[DragOver]
+{
+	outline:	dashed red 1px;
+}
+
+div[Collapsed]:hover
+{
+	outline:		1px dashed rgba(0,0,0,0.2);
+}
+div[Selected]
+{
+	outline:		1px dashed rgba(0,0,1,1.0) !important;
+}
+
+
+.Collapser
+{
+	cursor:			pointer;
+	margin-right:	0.4em;
+	border:			none;
+	background:		rgba(0,0,0,0);
+}
+
+.Collapser:hover
+{
+	background:		rgba(0,0,0,0.2);
+}
+
+/* hide children when collapsed */
+div[Collapsed=true] *:not(label):not(.Collapser)
+{
+	display:	none;
+}
+
+div[Collapsed=false] .Collapser:before
+{
+	content:	"\25BE";	/*hex html code*/
+}
+
+div[Collapsed=true] .Collapser:before
+{
+	content:	"\25B8";
+}
