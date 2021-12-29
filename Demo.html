@@ -4,12 +4,38 @@
 <style>
 body
 {
-	display:	flex;
 	margin:		0px;
 	background:	#3ac;
 
-	height:		100%;
-	flex-direction:	column;
+	xdisplay:		flex;
+	xheight:		100%;
+	xflex-direction:	column;
+	
+	display:	grid;
+	grid-template-areas:	"Editor Editor" 
+							"Json Labels";
+}
+
+uv-label-editor
+{
+	grid-area:	Editor;
+}
+
+textarea
+{
+	grid-area: Json;
+}
+
+#Labels
+{
+	grid-area:	Labels;
+}
+
+#Labels *
+{
+	background:	rgba(255,255,255,0.5);
+	margin:		1em;
+	padding:	1em;
 }
 
 body *
@@ -31,8 +57,40 @@ uv-label-editor:part(.uv-label-editor[DragOver])
 </style>
 </head>
 <body>
+
+<script>
+function OnLabelDragStart(Event)
+{
+	Event.dataTransfer.setData('text/plain',Event.currentTarget.innerText);
+	Event.stopPropagation();
+}
+function OnDeleteDragOver(Event)
+{
+	Event.stopPropagation();
+	Event.preventDefault();	//	ios to accept drop
+	Event.dataTransfer.dropEffect = 'copy';
+}
+function OnDeleteDrop(Event)
+{
+	Event.preventDefault();
+	Event.stopPropagation();
+	const DroppedKey = Event.dataTransfer.getData('text/plain');
+	
+	//	delete this key
+	const Labels = LabelEditor.labels;
+	delete Labels[DroppedKey];
+	LabelEditor.labels = Labels;
+}
+</script>
+
 <uv-label-editor id="LabelEditor" labels='{"Hello":[0.5,0.5]}' css="Demo.css"></uv-label-editor>
 <textarea id="JsonOutput"></textarea>
+<div id="Labels">
+	<div droppable=true ondragover="OnDeleteDragOver(event)" ondrop="OnDeleteDrop(event)">Drop Label Here to Delete</div>
+	<div draggable=true ondragstart="OnLabelDragStart(event)">One</div>
+	<div draggable=true ondragstart="OnLabelDragStart(event)">Two</div>
+	<div draggable=true ondragstart="OnLabelDragStart(event)">Three</div>
+</div>
 <script type=module>
 
 LabelEditor.onchanged = () => ShowJson( LabelEditor.labels );
