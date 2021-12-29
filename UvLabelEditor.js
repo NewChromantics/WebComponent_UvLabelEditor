@@ -4,20 +4,44 @@ export default ElementName;
 
 
 
-function GetUv(Event)
+function GetUv(Event,GrabOffsetXy)
 {
 	function Range(Min,Max,Value)
 	{
 		return (Value-Min)/(Max-Min);
 	}
 	
-	const Element = Event.target;
-	//let Parent = Element.offsetParent;
-	let Parent = Element;
 	
+	//	.target could be a child. .currentTarget is the element the event
+	//	was actually attached to
+	const Parent = Event.currentTarget;
 	const ParentRect = Parent.getBoundingClientRect();
-	const x = Event.offsetX;
-	const y = Event.offsetY;
+
+/*	
+	//	the event's position may be a child (.target) of the parent
+	//	so we need to get the total offset
+	let x = Event.offsetX;
+	let y = Event.offsetY;
+	let Target = Event.target;
+	while ( Target != Parent )
+	{
+		x += Target.offsetLeft;
+		y += Target.offsetTop;
+		if ( !Target.parentElement )
+			throw `Event target was never a child`;
+		Target = Target.parentElement;
+	}
+	*/
+	let x = Event.clientX;
+	let y = Event.clientY;
+	
+	if ( GrabOffsetXy )
+	{
+		console.log(`apply grab offset ${GrabOffsetXy}`);
+		x -= GrabOffsetXy[0];
+		y -= GrabOffsetXy[1];
+	}
+	
 	const u = Range( ParentRect.left, ParentRect.right, x ); 
 	const v = Range( ParentRect.top, ParentRect.bottom, y );
 	return [u,v]; 
@@ -200,6 +224,7 @@ export class UvLabelEditor extends HTMLElement
 		}
 		function OnDrop(Event)
 		{
+			console.log(`OnDrop`);
 			Element.removeAttribute('DragOver');
 			Event.preventDefault();
 			Event.stopPropagation();	//	dont need to pass to parent
@@ -207,7 +232,7 @@ export class UvLabelEditor extends HTMLElement
 			//	move source object to dropped object
 			const DroppedKey = Event.dataTransfer.getData('text/plain');
 			
-			const Uv = GetUv(Event);
+			const Uv = GetUv(Event,this.GrabXy);
 			this.OnDroppedKey( DroppedKey, Uv );
 		}
 		
@@ -233,10 +258,18 @@ export class UvLabelEditor extends HTMLElement
 		//	using HTML built in drag & drop so we can drag&drop elements in & out of this control
 		function OnDragStart(Event)
 		{
+			console.log(`grab ${Event.offsetX},${Event.offsetY} (${Event.currentTarget.clientLeft},${Event.currentTarget.clientTop})`);
 			//console.log(`OnDragStart ${Key}`);
 			//Event.dataTransfer.effectAllowed = 'all';
 			Event.dataTransfer.dropEffect = 'copy';	//	copy move link none
 			Event.dataTransfer.setData('text/plain', Key );
+			
+			let GrabX = Event.offsetX;
+			let GrabY = Event.offsetY;
+			//	adjust for borders/margins etc. A value here means offset is relative to this
+			GrabX -= Event.currentTarget.clientLeft;
+			GrabY -= Event.currentTarget.clientTop;
+			this.GrabXy = [GrabX,GrabY];
 			
 			Event.stopPropagation();	//	stops multiple objects being dragged
 			//Event.preventDefault();	//	this stops drag entirely
@@ -246,6 +279,11 @@ export class UvLabelEditor extends HTMLElement
 		{
 			//	continuously called
 			//console.log(`OnDrag`);
+		}
+		function OnDragEnd(Event)
+		{
+			console.log(`OnDragEnd`);
+			this.GrabXy = null;
 		}
 		
 		Element.id = Key;
@@ -258,8 +296,9 @@ export class UvLabelEditor extends HTMLElement
 		//	gr: not required https://stackoverflow.com/questions/6600950/native-html5-drag-and-drop-in-mobile-safari-ipad-ipod-iphone
 		//Element.style.setProperty('webkitUserDrag','element');
 		//Element.style.setProperty('webkitUserDrop','element');
-		Element.addEventListener('dragstart',OnDragStart);
+		Element.addEventListener('dragstart',OnDragStart.bind(this));
 		Element.addEventListener('drag',OnDrag);	//	would be good to allow temporary effects
+		Element.addEventListener('dragend',OnDragEnd.bind(this) );
 	}
 	
 	SetupTreeNodeElement(Element,Address,Value,Meta)
