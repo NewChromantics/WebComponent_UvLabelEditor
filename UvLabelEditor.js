@@ -154,7 +154,7 @@ export class UvLabelEditor extends HTMLElement
 		{
 			content:	attr(label);
 			display:	block;
-			transform:	translate(14px,0px);
+			transform:	translate(10px,0px);
 		}
 		`;
 		return Css;
@@ -270,8 +270,8 @@ export class UvLabelEditor extends HTMLElement
 			GrabX -= Event.currentTarget.clientLeft;
 			GrabY -= Event.currentTarget.clientTop;
 			//	gr: still need a tiny adjustment...
-			GrabX -= 2;
-			GrabY -= 2;
+			GrabX -= 1;
+			GrabY -= 1;
 			this.GrabXy = [GrabX,GrabY];
 			
 			Event.stopPropagation();	//	stops multiple objects being dragged

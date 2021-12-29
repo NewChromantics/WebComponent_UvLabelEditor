@@ -11,7 +11,8 @@ body
 	xheight:		100%;
 	xflex-direction:	column;
 	
-	display:	grid;
+	display:				grid;
+	grid-template-rows:		1fr auto;
 	grid-template-areas:	"Editor Editor" 
 							"Json Labels";
 }
@@ -36,6 +37,11 @@ textarea
 	background:	rgba(255,255,255,0.5);
 	margin:		1em;
 	padding:	1em;
+}
+
+#Delete
+{
+	background:	rgba(255,128,128,0.7);
 }
 
 body *
@@ -86,7 +92,7 @@ function OnDeleteDrop(Event)
 <uv-label-editor id="LabelEditor" labels='{"Hello":[0.5,0.5]}' css="Demo.css"></uv-label-editor>
 <textarea id="JsonOutput"></textarea>
 <div id="Labels">
-	<div droppable=true ondragover="OnDeleteDragOver(event)" ondrop="OnDeleteDrop(event)">Drop Label Here to Delete</div>
+	<div id="Delete" droppable=true ondragover="OnDeleteDragOver(event)" ondrop="OnDeleteDrop(event)">Drop Label Here to Delete</div>
 	<div draggable=true ondragstart="OnLabelDragStart(event)">One</div>
 	<div draggable=true ondragstart="OnLabelDragStart(event)">Two</div>
 	<div draggable=true ondragstart="OnLabelDragStart(event)">Three</div>
