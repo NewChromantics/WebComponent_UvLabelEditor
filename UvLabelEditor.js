@@ -2,6 +2,27 @@ const ElementName = `uv-label-editor`;
 
 export default ElementName; 
 
+
+
+function GetUv(Event)
+{
+	function Range(Min,Max,Value)
+	{
+		return (Value-Min)/(Max-Min);
+	}
+	
+	const Element = Event.target;
+	//let Parent = Element.offsetParent;
+	let Parent = Element;
+	
+	const ParentRect = Parent.getBoundingClientRect();
+	const x = Event.offsetX;
+	const y = Event.offsetY;
+	const u = Range( ParentRect.left, ParentRect.right, x ); 
+	const v = Range( ParentRect.top, ParentRect.bottom, y );
+	return [u,v]; 
+}
+
 export class UvLabelEditor extends HTMLElement 
 {
 	constructor()
@@ -62,7 +83,7 @@ export class UvLabelEditor extends HTMLElement
 	SetupDom(Parent)
 	{
 		this.RootElement = document.createElement('div');
-		this.RootElement.className = this.ElementName();
+		this.InitialiseContainer( this.RootElement );
 		
 		this.Style = document.createElement('style');
 		
@@ -140,7 +161,7 @@ export class UvLabelEditor extends HTMLElement
 		Children = Children.filter( e => e instanceof TreeNodeElement || e instanceof HTMLDivElement );
 		return Children;
 	}
-	
+
 	UpdateLabel(Key)
 	{
 		const Element = this.GetLabelElement(Key);
@@ -148,11 +169,97 @@ export class UvLabelEditor extends HTMLElement
 		
 		const u = Value[0];
 		const v = Value[1];
-		Element.setAttribute('label',Key);
 		Element.setAttribute('u',u);
 		Element.setAttribute('v',v);
 		Element.style.setProperty('--u', u );
 		Element.style.setProperty('--v', v );
+	}
+	
+	InitialiseContainer(Element)
+	{
+		function OnDragOver(Event)
+		{
+			//	continuously called
+			//console.log(`OnDragOver ${Key}`);
+			Element.setAttribute('DragOver',true);
+			Event.stopPropagation();
+			Event.preventDefault();	//	ios to accept drop
+			
+			//	seems to default to copy if you dont set this
+			//	ios has no link icon, nothing has move icon
+			Event.dataTransfer.dropEffect = 'copy';
+			//	copy then link here, drop will fail, but using link to get icon on desktop
+			//Event.dataTransfer.dropEffect = 'link';
+			//Event.dataTransfer.dropEffect = 'move';
+			//return true;
+		}
+		function OnDragLeave(Event)
+		{
+			//console.log(`OnDragLeave ${Key}`);
+			Element.removeAttribute('DragOver');
+		}
+		function OnDrop(Event)
+		{
+			Element.removeAttribute('DragOver');
+			Event.preventDefault();
+			Event.stopPropagation();	//	dont need to pass to parent
+			
+			//	move source object to dropped object
+			const DroppedKey = Event.dataTransfer.getData('text/plain');
+			
+			const Uv = GetUv(Event);
+			this.OnDroppedKey( DroppedKey, Uv );
+		}
+		
+		
+		Element.className = this.ElementName();
+
+		//	handle dropping new elements
+		Element.setAttribute('Droppable',true);
+		Element.addEventListener('drop',OnDrop.bind(this));
+		Element.addEventListener('dragover',OnDragOver);
+		Element.addEventListener('dragleave',OnDragLeave);
+	}
+	
+	OnDroppedKey(Key,uv)
+	{
+		const Labels = this.labels;
+		Labels[Key] = uv;
+		this.labels = Labels;
+	}
+	
+	InitialiseLabel(Key,Element)
+	{
+		//	using HTML built in drag & drop so we can drag&drop elements in & out of this control
+		function OnDragStart(Event)
+		{
+			//console.log(`OnDragStart ${Key}`);
+			//Event.dataTransfer.effectAllowed = 'all';
+			Event.dataTransfer.dropEffect = 'copy';	//	copy move link none
+			Event.dataTransfer.setData('text/plain', Key );
+			
+			Event.stopPropagation();	//	stops multiple objects being dragged
+			//Event.preventDefault();	//	this stops drag entirely
+			//return true;//	not required?
+		}
+		function OnDrag(Event)
+		{
+			//	continuously called
+			//console.log(`OnDrag`);
+		}
+		
+		Element.id = Key;
+		Element.className = 'Label';
+		Element.setAttribute('label',Key);
+		
+		//	set attribute to make it draggable
+		Element.setAttribute('Draggable',true);
+		//	on ios its a css choice
+		//	gr: not required https://stackoverflow.com/questions/6600950/native-html5-drag-and-drop-in-mobile-safari-ipad-ipod-iphone
+		//Element.style.setProperty('webkitUserDrag','element');
+		//Element.style.setProperty('webkitUserDrop','element');
+		Element.addEventListener('dragstart',OnDragStart);
+		Element.addEventListener('drag',OnDrag);	//	would be good to allow temporary effects
 	}
 	
 	SetupTreeNodeElement(Element,Address,Value,Meta)
@@ -358,8 +465,7 @@ export class UvLabelEditor extends HTMLElement
 			return Child;
 			
 		Child = document.createElement('div');
-		Child.id = Key;
-		Child.className = 'Label';
+		this.InitialiseLabel( Key, Child );
 		this.TreeContainer.appendChild(Child);
 		return Child;
 	}
@@ -392,7 +498,7 @@ export class UvLabelEditor extends HTMLElement
 		
 		//	remove any labels that are no longer referenced
 		const LabelElements = this.GetLabelElements();
-		const RemovedLabelKeys = LabelElements.filter( e => !LabelKeys.any( k => e.id == k ) ).map( e => e.id );
+		const RemovedLabelKeys = LabelElements.filter( e => !LabelKeys.some( k => e.id == k ) ).map( e => e.id );
 		RemovedLabelKeys.forEach( Key => this.RemoveLabelElement.call( this, Key ) );
 		
 		LabelKeys.forEach( this.UpdateLabel.bind(this) );
