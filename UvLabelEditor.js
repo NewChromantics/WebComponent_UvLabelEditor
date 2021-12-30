@@ -273,6 +273,8 @@ export class UvLabelEditor extends HTMLElement
 			return 0;
 		}
 		const SortedEntries = Object.entries(Labels).sort(SortDistance);
+		if ( SortedEntries.length == 0 )
+			return null;
 		const NearestDistance = GetEntryDistance( SortedEntries[0] );
 		if ( NearestDistance > MaxDistance )
 			return null;
