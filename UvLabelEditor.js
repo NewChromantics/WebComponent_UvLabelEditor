@@ -140,8 +140,8 @@ export class UvLabelEditor extends HTMLElement
 	}
 	set zoom(value)
 	{
-		if ( value < 0.5 )
-			value = 0.5;
+		if ( value < 0.1 )
+			value = 0.1;
 		if ( value > 10 )
 			value = 10;
 		//	todo: set style variable here
@@ -184,21 +184,23 @@ export class UvLabelEditor extends HTMLElement
 		
 		.Label
 		{
+			--Size:	10px;
+			--MinusHalfSize:	calc( -0.5 * var(--Size) );
 			--u:	0.5;
 			--v:	0.5;
 			position:	absolute;
 			left:		calc( var(--u)*100% );
 			top:		calc( var(--v)*100% );/*gr: is this 100% of width, not height?*/
-			width:		10px;
-			height:		10px;
+			width:		var(--Size);
+			height:		var(--Size);
 			border:		1px solid black;
-			transform:	translate(-5px,-5px);
+			transform:	translate( var(--MinusHalfSize),var(--MinusHalfSize));
 		}
 		.Label:after
 		{
 			content:	attr(label);
 			display:	block;
-			transform:	translate(10px,0px);
+			transform:	translate( var(--Size),0px);
 		}
 		`;
 		return Css;
