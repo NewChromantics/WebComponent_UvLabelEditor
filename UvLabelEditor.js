@@ -248,6 +248,33 @@ export class UvLabelEditor extends HTMLElement
 		Element.style.setProperty('--v', v );
 	}
 	
+	GetLabelKeyNear(Uv)
+	{
+		//	need tolerance to be variable somehow based on zoom etc
+		const MaxDistance = 0.02;
+		const Labels = this.labels;
+		function GetEntryDistance(KeyAndValue)
+		{
+			let Deltax = KeyAndValue[1][0] - Uv[0];
+			let Deltay = KeyAndValue[1][1] - Uv[1];
+			let Distance = Math.sqrt( Deltax*Deltax + Deltay*Deltay );
+			return Distance;
+		}
+		function SortDistance(a,b)
+		{
+			a = GetEntryDistance(a);
+			b = GetEntryDistance(b);
+			if ( a < b )	return -1;
+			if ( a > b )	return 1;
+			return 0;
+		}
+		const SortedEntries = Object.entries(Labels).sort(SortDistance);
+		const NearestDistance = GetEntryDistance( SortedEntries[0] );
+		if ( NearestDistance > MaxDistance )
+			return null;
+		return SortedEntries[0][0];
+	}
+	
 	InitialiseContainer(Element)
 	{
 		function OnDragOver(Event)
@@ -295,6 +322,23 @@ export class UvLabelEditor extends HTMLElement
 			this.zoom -= Event.deltaY * 0.01;
 		}
 		
+		function OnClick(Event)
+		{
+			const Uv = GetUv(Event);
+			const Key = this.GetLabelKeyNear(Uv);
+			if ( !Key )
+			{
+				console.warn(`No near key`);
+				return;
+			}
+				
+			const Labels = this.labels;
+			Labels[Key] = Uv;
+			this.labels = Labels;
+				
+			Event.preventDefault();
+		}
+		
 		
 		Element.className = this.ElementName();
 
@@ -304,6 +348,7 @@ export class UvLabelEditor extends HTMLElement
 		Element.addEventListener('dragleave',OnDragLeave);
 		
 		Element.addEventListener('wheel',OnMouseWheel.bind(this));
+		Element.addEventListener('click',OnClick.bind(this));
 
 		this.UpdateContainerAttributes();
 	}
