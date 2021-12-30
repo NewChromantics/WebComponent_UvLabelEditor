@@ -70,7 +70,7 @@ export class UvLabelEditor extends HTMLElement
 	
 	static get observedAttributes() 
 	{
-		return ['labels','css','readonly'];
+		return ['labels','css','readonly','zoom'];
 	}
 	
 	get readonly()
@@ -129,6 +129,25 @@ export class UvLabelEditor extends HTMLElement
 		Parent.appendChild(this.RootElement);
 	}
 	
+	get zoom()
+	{
+		if ( !this.hasAttribute('zoom') )
+			return 1.0;
+		let Zoom = parseFloat( this.getAttribute('zoom') );
+		if ( isNaN(Zoom) )
+			return 1.0;
+		return Zoom;
+	}
+	set zoom(value)
+	{
+		if ( value < 0.5 )
+			value = 0.5;
+		if ( value > 10 )
+			value = 10;
+		//	todo: set style variable here
+		this.setAttribute('zoom',value);
+	}
+	
 	GetCssContent()
 	{
 		const ImportCss = this.css ? `@import "${this.css}";` : '';
@@ -137,18 +156,30 @@ export class UvLabelEditor extends HTMLElement
 		
 		:host
 		{
-			background-size: 100% 100% !important;
-			overflow:		hidden;
+			--Zoom:				${this.zoom};
+			--ZoomOriginX:		0.5;
+			--ZoomOriginY:		0.5;
+			--ZoomOriginXPercent:	calc( var(--ZoomOriginX) * 100% );
+			--ZoomOriginYPercent:	calc( var(--ZoomOriginY) * 100% );
+			
+			--BackgroundScale:	calc( var(--Zoom) * 100% );	
+			
+			background-repeat:	no-repeat !important;
+			background-position: var(--ZoomOriginXPercent) var(--ZoomOriginYPercent) !important;
+			background-size:	var(--BackgroundScale) var(--BackgroundScale) !important;
+			overflow:			hidden;
 		}
 		
 		/* root container */
 		.${this.ElementName()}
 		{
-			position:	relative;
-			width:		100%;
-			height:		100%;
+			position:		relative;
+			width:			100%;
+			height:			100%;
 			xxbackground:	yellow;
 			
+			transform-origin: var(--ZoomOriginXPercent) var(--ZoomOriginYPercent);
+			transform:		scale( calc( 1 * var(--Zoom) ) );
 		}
 		
 		.Label
@@ -256,6 +287,12 @@ export class UvLabelEditor extends HTMLElement
 			this.OnDroppedKey( DroppedKey, Uv );
 		}
 		
+		function OnMouseWheel(Event)
+		{
+			Event.preventDefault();
+			this.zoom -= Event.deltaY * 0.01;
+		}
+		
 		
 		Element.className = this.ElementName();
 
@@ -263,6 +300,8 @@ export class UvLabelEditor extends HTMLElement
 		Element.addEventListener('drop',OnDrop.bind(this));
 		Element.addEventListener('dragover',OnDragOver.bind(this));
 		Element.addEventListener('dragleave',OnDragLeave);
+		
+		Element.addEventListener('wheel',OnMouseWheel.bind(this));
 
 		this.UpdateContainerAttributes();
 	}
