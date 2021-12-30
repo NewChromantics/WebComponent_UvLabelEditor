@@ -92,7 +92,11 @@ export class UvLabelEditor extends HTMLElement
 		try
 		{
 			let Value = this.getAttribute('labels');
-			return JSON.parse(Value);
+			//	null -> parse -> null
+			if ( !Value )
+				return {};
+			Value = JSON.parse(Value);
+			return Value; 
 		}
 		catch(e)
 		{
