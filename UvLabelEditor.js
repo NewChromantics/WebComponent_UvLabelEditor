@@ -158,8 +158,12 @@ export class UvLabelEditor extends HTMLElement
 		const Css = `
 		${ImportCss}
 		
+		
 		:host
 		{
+			--OutlineColour:	rgb(255,255,255,0.7);
+			--LabelColour:		#000;
+			
 			--Zoom:				${this.zoom};
 			--ZoomOriginX:		0.5;
 			--ZoomOriginY:		0.5;
@@ -197,11 +201,12 @@ export class UvLabelEditor extends HTMLElement
 			top:		calc( var(--v)*100% );/*gr: is this 100% of width, not height?*/
 			width:		var(--Size);
 			height:		var(--Size);
-			border:		1px solid black;
+			border:		1px solid var(--LabelColour);
 			transform:	translate( var(--MinusHalfSize),var(--MinusHalfSize));
 		}
 		.Label:after
 		{
+			color:		var(--LabelColour);
 			content:	attr(label);
 			display:	block;
 			transform:	translate( var(--Size),0px);
@@ -224,8 +229,10 @@ export class UvLabelEditor extends HTMLElement
 	
 	connectedCallback()
 	{
+		//	move any children in the html onto our dom
 		//	Create a shadow root
 		this.Shadow = this.attachShadow({mode: 'open'});
+		
 		this.SetupDom(this.Shadow);
 		this.attributeChangedCallback();
 	}
