@@ -70,7 +70,7 @@ export class UvLabelEditor extends HTMLElement
 	
 	static get observedAttributes() 
 	{
-		return ['labels','css','readonly','zoom'];
+		return ['labels','css','readonly','zoom','zoomorigin'];
 	}
 	
 	get readonly()
@@ -151,6 +151,24 @@ export class UvLabelEditor extends HTMLElement
 		//	todo: set style variable here
 		this.setAttribute('zoom',value);
 	}
+	set zoomorigin(uv)
+	{
+		if ( typeof uv != typeof '' )
+			uv = uv.join(',');
+		this.setAttribute('zoomorigin',uv);
+	}
+	get zoomorigin()
+	{
+		if ( !this.hasAttribute('zoomorigin') )
+			return [0.5,0.5];
+		const uv = this.getAttribute('zoomorigin').split(',').map(Number);
+		//	clamp so we never lose things offscreen
+		uv[0] = Math.min( 1, Math.max( 0, uv[0] ) );
+		uv[1] = Math.min( 1, Math.max( 0, uv[1] ) );
+		return uv;
+	}
+	get zoomoriginu()	{	return this.zoomorigin[0];	}
+	get zoomoriginv()	{	return this.zoomorigin[1];	}
 	
 	GetCssContent()
 	{
@@ -165,8 +183,8 @@ export class UvLabelEditor extends HTMLElement
 			--LabelColour:		#000;
 			
 			--Zoom:				${this.zoom};
-			--ZoomOriginX:		0.5;
-			--ZoomOriginY:		0.5;
+			--ZoomOriginX:		${this.zoomoriginu};
+			--ZoomOriginY:		${this.zoomoriginv};
 			--ZoomOriginXPercent:	calc( var(--ZoomOriginX) * 100% );
 			--ZoomOriginYPercent:	calc( var(--ZoomOriginY) * 100% );
 			
@@ -186,8 +204,12 @@ export class UvLabelEditor extends HTMLElement
 			height:			100%;
 			xxbackground:	yellow;
 			
-			transform-origin: var(--ZoomOriginXPercent) var(--ZoomOriginYPercent);
-			transform:		scale( calc( 1 * var(--Zoom) ) );
+			xxtransform-origin: var(--ZoomOriginXPercent) var(--ZoomOriginYPercent);
+			--Scale:		calc( 1 * var(--Zoom) );
+			--Tx:			calc( var(--ZoomOriginXPercent) - 50% );
+			--Ty:			calc( var(--ZoomOriginYPercent) - 50% );
+			transform:		scale(var(--Scale)) translateX(var(--Tx)) translateY(var(--Ty));
+			xxtransform:		scale(var(--Scale));
 		}
 		
 		.Label
@@ -352,6 +374,50 @@ export class UvLabelEditor extends HTMLElement
 			Event.preventDefault();
 		}
 		
+		function OnMouseDown(Event)
+		{
+			this.DragStart = GetUv(Event);
+			this.DragOriginUv = this.zoomorigin;
+			this.DragButton = Event.button;
+		}
+		function OnMouseMove(Event)
+		{
+			if ( !this.DragStart )
+				return;
+			if ( (Event.buttons & (1<<this.DragButton) ) == 0 )
+			{
+				OnMouseUp.call(this);
+				return;
+			}
+			const Uv = GetUv(Event);
+			const Zoom = this.zoom;
+			let Deltau = Uv[0] - this.DragStart[0];
+			let Deltav = Uv[1] - this.DragStart[1];
+			if ( Zoom < 1.0 )
+			{
+				Deltau *= -1;
+				Deltav *= -1;
+			}
+			Deltau *= Zoom;
+			Deltav *= Zoom;
+			const u = this.zoomorigin[0] - Deltau;
+			const v = this.zoomorigin[1] - Deltav;
+			this.zoomorigin = [u,v];
+			console.log(`this.zoomorigin = ${this.zoomorigin}`);
+		}
+		function OnMouseUp(Event)
+		{
+			this.DragStart = null;
+			this.DragOriginUv = null;
+		}
+		function OnMouseCancel(Event)
+		{
+			//	revert drag
+			this.zoomorigin = this.DragStart;
+			this.DragStart = null;
+			this.DragOriginUv = null;
+		}
+		
 		
 		Element.className = this.ElementName();
 
@@ -359,9 +425,16 @@ export class UvLabelEditor extends HTMLElement
 		Element.addEventListener('drop',OnDrop.bind(this));
 		Element.addEventListener('dragover',OnDragOver.bind(this));
 		Element.addEventListener('dragleave',OnDragLeave);
-		
-		Element.addEventListener('wheel',OnMouseWheel.bind(this));
+
+		//	click to snap labels		
 		Element.addEventListener('click',OnClick.bind(this));
+		//	zoom
+		Element.addEventListener('wheel',OnMouseWheel.bind(this));
+		
+		//	pan
+		//Element.addEventListener('mousedown',OnMouseDown.bind(this));
+		//Element.addEventListener('mousemove',OnMouseMove.bind(this));
+		//Element.addEventListener('mouseup',OnMouseUp.bind(this));
 
 		this.UpdateContainerAttributes();
 	}
