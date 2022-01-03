@@ -155,6 +155,16 @@ export class UvLabelEditor extends HTMLElement
 			value = 0.1;
 		if ( value > 10 )
 			value = 10;
+		
+		//	snap to 1.0 if we're very close
+		const SnapTo1Tolerance = 0.01;
+		if ( value >= 1.0 - SnapTo1Tolerance &&
+			value <= 1.0 + SnapTo1Tolerance )
+		{
+			console.log(`Snapped zoom from ${value} to 1`);
+			value = 1;
+		}
+		
 		//	todo: set style variable here
 		this.setAttribute('zoom',value);
 	}
