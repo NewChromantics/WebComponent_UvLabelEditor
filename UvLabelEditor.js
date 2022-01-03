@@ -59,6 +59,13 @@ export class UvLabelEditor extends HTMLElement
 		};
 	}
 	
+	OnChanged()
+	{
+		if ( !this.onchanged )
+			return;
+		this.onchanged();
+	}
+	
 	static ElementName()
 	{
 		return ElementName;
@@ -114,7 +121,7 @@ export class UvLabelEditor extends HTMLElement
 			return;
 			
 		this.setAttribute('labels', Value);
-		this.onchanged();	
+		this.OnChanged();	
 	}
 	
 	get css()			{	return this.getAttribute('css');	}
