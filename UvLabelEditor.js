@@ -102,7 +102,15 @@ export class UvLabelEditor extends HTMLElement
 			//	null -> parse -> null
 			if ( !Value )
 				return {};
+			
 			Value = JSON.parse(Value);
+			//	if the data is an array, convert to key'd object
+			let KeydValues = {};
+			if ( Array.isArray(Value) )
+			{
+				Value.forEach( (uv,Index) => KeydValues[Index] = uv );
+				Value = KeydValues;
+			}
 			return Value; 
 		}
 		catch(e)
@@ -285,10 +293,13 @@ export class UvLabelEditor extends HTMLElement
 		return Children;
 	}
 
-	UpdateLabel(Key)
+	UpdateLabel(Key,Labels)
 	{
+		if ( !Labels )
+			Labels = this.labels;
+			
 		const Element = this.GetLabelElement(Key);
-		const Value = this.labels[Key];
+		const Value = Labels[Key];
 		
 		const u = Value[0];
 		const v = Value[1];
@@ -718,9 +729,13 @@ export class UvLabelEditor extends HTMLElement
 
 	GetLabelElement(Key)
 	{
+		//let Child = this.TreeContainer.getElementById(Key);
+		let Child = this.shadowRoot.getElementById(Key);
+		/*
 		const Children = Array.from( this.TreeContainer.children );
 		
 		let Child = Children.find( e => e.id == Key );
+		*/
 		if ( Child )
 			return Child;
 			
@@ -761,7 +776,7 @@ export class UvLabelEditor extends HTMLElement
 		const RemovedLabelKeys = LabelElements.filter( e => !LabelKeys.some( k => e.id == k ) ).map( e => e.id );
 		RemovedLabelKeys.forEach( Key => this.RemoveLabelElement.call( this, Key ) );
 		
-		LabelKeys.forEach( this.UpdateLabel.bind(this) );
+		LabelKeys.forEach( (k) => this.UpdateLabel( k, Labels ) );
 	}
 }
 
