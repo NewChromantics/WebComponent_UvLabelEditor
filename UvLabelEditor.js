@@ -77,7 +77,7 @@ export class UvLabelEditor extends HTMLElement
 	
 	static get observedAttributes() 
 	{
-		return ['labels','css','readonly','zoom','zoomorigin'];
+		return ['labels','css','readonly','zoom','zoomorigin','linemode'];
 	}
 	
 	get readonly()
@@ -132,9 +132,46 @@ export class UvLabelEditor extends HTMLElement
 		this.OnChanged();	
 	}
 	
-	get css()			{	return this.getAttribute('css');	}
-	set css(Css)		{	Css ? this.setAttribute('css', Css) : this.removeAttribute('css');	}
-	
+	get css()				{	return this.getAttribute('css');	}
+	set css(Css)			{	Css ? this.setAttribute('css', Css) : this.removeAttribute('css');	}
+	//get linemode()			{	return this.hasAttribute('linemode') ? this.getAttribute('linemode') : false;	}
+	get linemode()			{	return 'lines';	}
+
+	//	get lines calculated from labels
+	get lines()			
+	{
+		const Lines = {};
+		const LineMode = this.linemode;
+		if ( !LineMode )
+			return Lines;
+		
+		const LabelEntries = Object.entries(this.labels);
+		
+		function PushLine(StartKey,EndKey,StartPos,EndPos)
+		{
+			//	gr: this can't clash with a label key!
+			const LineKey = `Line_From_${StartKey}_To_${EndKey}`;
+			const LineValue = [StartPos.slice(0,2),EndPos.slice(0,2)]; 
+			Lines[LineKey] = LineValue;
+		}
+		
+		if ( this.linemode == 'lines' )
+		{
+			for ( let i=0;	i<LabelEntries.length-1;	i+=2 )
+			{
+				const KeyA = LabelEntries[i+0][0];
+				const KeyB = LabelEntries[i+1][0];
+				const Start = LabelEntries[i+0][1];
+				const End = LabelEntries[i+1][1];
+				PushLine( KeyA, KeyB, Start, End );
+			}
+		}
+		else
+		{
+			throw `unhandled line mode ${this.linemode}`;
+		}
+		return Lines;
+	}
 
 	SetupDom(Parent)
 	{
@@ -243,6 +280,7 @@ export class UvLabelEditor extends HTMLElement
 			--MinusHalfSize:	calc( -0.5 * var(--Size) );
 			--u:	0.5;
 			--v:	0.5;
+			--LabelWidth:	calc(1px*100vh);
 			position:	absolute;
 			left:		calc( var(--u)*100% );
 			top:		calc( var(--v)*100% );/*gr: is this 100% of width, not height?*/
@@ -258,6 +296,32 @@ export class UvLabelEditor extends HTMLElement
 			display:	block;
 			transform:	translate( var(--Size),0px);
 		}
+		
+		.Line
+		{
+			--Colour:	var(--LabelColour);
+			position:	absolute;
+			display:	block;
+			
+			left:		calc( var(--LeftU) * 100% );
+			top:		calc( var(--TopV) * 100% );
+			--Width:		calc( (var(--WidthU)) * 100% );
+			--Height:		calc( (var(--HeightV)) * 100% );
+			width:		calc( max( var(--Width), 40px ) );
+			height:		calc( max( var(--Height), 40px ) );
+			xxwidth:		20px;
+			xxheight:		20px;
+			
+			xxtransform-origin: 0 0;
+			xxtransform:	rotate( calc( var(--Angle) * 1rad + 90deg ) );
+			background:	linear-gradient(to top right, rgba(0,0,0,0) calc(50% - 1px), var(--Colour), rgba(0,0,0,0) calc(50% + 1px) );
+			xborder:		1px solid lime;
+			pointer-events:	none;
+		}
+		.Line[Mirrored=true]
+		{
+			background:	linear-gradient(to top left, rgba(0,0,0,0) calc(50% - 1px), var(--Colour), rgba(0,0,0,0) calc(50% + 1px) );
+		}
 		`;
 		return Css;
 	}
@@ -270,6 +334,7 @@ export class UvLabelEditor extends HTMLElement
 		if ( name == 'readonly' )
 			this.UpdateContainerAttributes();
 		
+		//	todo: only update style if some css relative variables change
 		if ( this.Style )
 			this.Style.textContent = this.GetCssContent();
 	}
@@ -283,15 +348,6 @@ export class UvLabelEditor extends HTMLElement
 		this.SetupDom(this.Shadow);
 		this.attributeChangedCallback();
 	}
-	
-	get TreeContainer()	{	return this.RootElement;	}
-
-	get TreeChildren()
-	{
-		let Children = Array.from( this.TreeContainer.children );
-		Children = Children.filter( e => e instanceof TreeNodeElement || e instanceof HTMLDivElement );
-		return Children;
-	}
 
 	UpdateLabel(Key,Labels)
 	{
@@ -303,10 +359,56 @@ export class UvLabelEditor extends HTMLElement
 		
 		const u = Value[0];
 		const v = Value[1];
-		Element.setAttribute('u',u);
-		Element.setAttribute('v',v);
-		Element.style.setProperty('--u', u );
-		Element.style.setProperty('--v', v );
+		const Attributes = {};
+		Attributes.u = u;
+		Attributes.v = v;
+		
+		for ( let [Key,Value] of Object.entries(Attributes) )
+		{
+			Element.setAttribute(Key,Value);
+			Element.style.setProperty( `--${Key}`, Value );
+		}
+	}
+	
+	UpdateLine(Key,Lines)
+	{
+		if ( !Lines )
+			Lines = this.lines;
+			
+		const Element = this.GetLineElement(Key);
+		const Value = Lines[Key];
+		
+		const Attributes = {};
+		
+		//	we can't use rotate & length as we can't
+		//	scale to the height, only works if 1:1 parent
+		//	so instead we make a rectangle and draw a line
+		//	so get topleft and bottom right, then decide if 
+		//	diagonal needs to go tl->br or tr->bl
+		let Start = Value[0];
+		let End = Value[1];
+		let Top = Math.min( Start[1], End[1] );
+		let Bottom = Math.max( Start[1], End[1] );
+		let Left = Math.min( Start[0], End[0] );
+		let Right = Math.max( Start[0], End[0] );
+
+		let IsOriginalPoints = ( Start[0] == Left && Start[1] == Top );
+		IsOriginalPoints |= ( End[0] == Left && End[1] == Top );
+		
+		Attributes.Mirrored = (!IsOriginalPoints);
+
+		Attributes.LeftU = Left;
+		Attributes.TopV = Top;
+		Attributes.BottomV = Bottom;
+		Attributes.RightU = Right;
+		Attributes.WidthU = Right - Left;
+		Attributes.HeightV = Bottom - Top;
+		
+		for ( let [Key,Value] of Object.entries(Attributes) )
+		{
+			Element.setAttribute(Key,Value);
+			Element.style.setProperty( `--${Key}`, Value );
+		}
 	}
 	
 	GetLabelKeyNear(Uv)
@@ -460,9 +562,9 @@ export class UvLabelEditor extends HTMLElement
 		Element.addEventListener('wheel',OnMouseWheel.bind(this));
 		
 		//	pan
-		//Element.addEventListener('mousedown',OnMouseDown.bind(this));
-		//Element.addEventListener('mousemove',OnMouseMove.bind(this));
-		//Element.addEventListener('mouseup',OnMouseUp.bind(this));
+		Element.addEventListener('mousedown',OnMouseDown.bind(this));
+		Element.addEventListener('mousemove',OnMouseMove.bind(this));
+		Element.addEventListener('mouseup',OnMouseUp.bind(this));
 
 		this.UpdateContainerAttributes();
 	}
@@ -532,6 +634,14 @@ export class UvLabelEditor extends HTMLElement
 		Element.addEventListener('drag',OnDrag);	//	would be good to allow temporary effects
 		Element.addEventListener('dragend',OnDragEnd.bind(this) );
 	}
+	
+	InitialiseLine(Key,Element)
+	{
+		Element.id = Key;
+		Element.className = 'Line';
+		Element.setAttribute('line',Key);
+	}
+
 	
 	SetupTreeNodeElement(Element,Address,Value,Meta)
 	{
@@ -729,54 +839,76 @@ export class UvLabelEditor extends HTMLElement
 
 	GetLabelElement(Key)
 	{
-		//let Child = this.TreeContainer.getElementById(Key);
 		let Child = this.shadowRoot.getElementById(Key);
-		/*
-		const Children = Array.from( this.TreeContainer.children );
-		
-		let Child = Children.find( e => e.id == Key );
-		*/
 		if ( Child )
 			return Child;
 			
 		Child = document.createElement('div');
 		this.InitialiseLabel( Key, Child );
-		this.TreeContainer.appendChild(Child);
+		this.LabelContainer.appendChild(Child);
 		return Child;
 	}
 	
+	GetLineElement(Key)
+	{
+		let Child = this.shadowRoot.getElementById(Key);
+		if ( Child )
+			return Child;
+			
+		Child = document.createElement('div');
+		this.InitialiseLine( Key, Child );
+		this.LabelContainer.appendChild(Child);
+		return Child;
+	}
+		
+	get LabelContainer()	{	return this.RootElement;	}
+
 	GetLabelElements()
 	{
-		const Children = Array.from( this.TreeContainer.children );
+		const Children = Array.from( this.LabelContainer.children );
 		return Children;
 	}
 	
 	RemoveLabelElement(Key)
 	{
-		const Children = Array.from( this.TreeContainer.children );
+		const Children = Array.from( this.LabelContainer.children );
 		let Child = Children.find( e => e.id == Key );
 		if ( !Child )
 			return false;
 		
-		this.TreeContainer.removeChild(Child);
+		this.LabelContainer.removeChild(Child);
 		return Child;
 	}
+
 
 	UpdateLabels()
 	{
 		//	no DOM yet
-		if ( !this.TreeContainer )
+		if ( !this.LabelContainer )
 			return;
 			
 		const Labels = this.labels;
+		const Lines = this.lines;
 		const LabelKeys = Object.keys(Labels);
+		const LineKeys = Object.keys(Lines);
+		
+		function IsLabelOrLineKey(Key)
+		{
+			return LabelKeys.some( k => Key == k ) ||  
+					LineKeys.some( k => Key == k );
+		}
+		function IsLabelOrLineElement(Element)
+		{
+			return IsLabelOrLineKey( Element.id );
+		}
 		
 		//	remove any labels that are no longer referenced
-		const LabelElements = this.GetLabelElements();
-		const RemovedLabelKeys = LabelElements.filter( e => !LabelKeys.some( k => e.id == k ) ).map( e => e.id );
+		const LabelAndLineElements = this.GetLabelElements();
+		const RemovedLabelKeys = LabelAndLineElements.filter(IsLabelOrLineElement).map( e => e.id );
 		RemovedLabelKeys.forEach( Key => this.RemoveLabelElement.call( this, Key ) );
 		
 		LabelKeys.forEach( (k) => this.UpdateLabel( k, Labels ) );
+		LineKeys.forEach( (k) => this.UpdateLine( k, Lines ) );
 	}
 }
 
