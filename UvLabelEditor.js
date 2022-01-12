@@ -562,9 +562,9 @@ export class UvLabelEditor extends HTMLElement
 		Element.addEventListener('wheel',OnMouseWheel.bind(this));
 		
 		//	pan
-		Element.addEventListener('mousedown',OnMouseDown.bind(this));
-		Element.addEventListener('mousemove',OnMouseMove.bind(this));
-		Element.addEventListener('mouseup',OnMouseUp.bind(this));
+	//	Element.addEventListener('mousedown',OnMouseDown.bind(this));
+		//Element.addEventListener('mousemove',OnMouseMove.bind(this));
+		//Element.addEventListener('mouseup',OnMouseUp.bind(this));
 
 		this.UpdateContainerAttributes();
 	}
