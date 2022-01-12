@@ -305,12 +305,8 @@ export class UvLabelEditor extends HTMLElement
 			
 			left:		calc( var(--LeftU) * 100% );
 			top:		calc( var(--TopV) * 100% );
-			--Width:		calc( (var(--WidthU)) * 100% );
-			--Height:		calc( (var(--HeightV)) * 100% );
-			width:		calc( max( var(--Width), 40px ) );
-			height:		calc( max( var(--Height), 40px ) );
-			xxwidth:		20px;
-			xxheight:		20px;
+			width:		calc( (var(--WidthU)) * 100% );
+			height:		calc( (var(--HeightV)) * 100% );
 			
 			xxtransform-origin: 0 0;
 			xxtransform:	rotate( calc( var(--Angle) * 1rad + 90deg ) );
