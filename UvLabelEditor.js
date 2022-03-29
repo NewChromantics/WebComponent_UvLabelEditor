@@ -893,14 +893,14 @@ export class UvLabelEditor extends HTMLElement
 			return LabelKeys.some( k => Key == k ) ||  
 					LineKeys.some( k => Key == k );
 		}
-		function IsLabelOrLineElement(Element)
+		function IsNotLabelOrLineElement(Element)
 		{
-			return IsLabelOrLineKey( Element.id );
+			return !IsLabelOrLineKey( Element.id );
 		}
 		
 		//	remove any labels that are no longer referenced
 		const LabelAndLineElements = this.GetLabelElements();
-		const RemovedLabelKeys = LabelAndLineElements.filter(IsLabelOrLineElement).map( e => e.id );
+		const RemovedLabelKeys = LabelAndLineElements.filter(IsNotLabelOrLineElement).map( e => e.id );
 		RemovedLabelKeys.forEach( Key => this.RemoveLabelElement.call( this, Key ) );
 		
 		LabelKeys.forEach( (k) => this.UpdateLabel( k, Labels ) );
