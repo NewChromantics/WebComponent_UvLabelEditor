@@ -134,8 +134,8 @@ export class UvLabelEditor extends HTMLElement
 	
 	get css()				{	return this.getAttribute('css');	}
 	set css(Css)			{	Css ? this.setAttribute('css', Css) : this.removeAttribute('css');	}
-	//get linemode()			{	return this.hasAttribute('linemode') ? this.getAttribute('linemode') : false;	}
-	get linemode()			{	return 'lines';	}
+	get linemode()			{	return this.hasAttribute('linemode') ? this.getAttribute('linemode') : false;	}
+//	get linemode()			{	return 'lines';	}
 
 	//	get lines calculated from labels
 	get lines()			
@@ -274,8 +274,15 @@ export class UvLabelEditor extends HTMLElement
 			xxtransform:		scale(var(--Scale));
 		}
 		
+		.Label:hover,
+		.Line:hover
+		{
+			--LabelColour:		#0f0;
+		}
+			
 		.Label
 		{
+		xxdisplay:none;
 			--Size:	10px;
 			--MinusHalfSize:	calc( -0.5 * var(--Size) );
 			--u:	0.5;
